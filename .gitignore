@@ -1,0 +1,17 @@
+pycache__/
+baseline_gan_test/
+baseline_gan_train_500000/
+cifar_AAM_GAN_128_0.3_1_repeat_4/
+cifar_AAM_GAN_128_0.5_1_repeat_4/
+cifar_AAM_GAN_128_0.5_1_repeat_5/
+cifar_AAM_GAN_32_0.5_1_repeat_5/
+cifar_AAM_GAN_64_0.3_1_repeat_4/
+cifar_AAM_GAN_64_0.5_1_repeat_4/
+cifar_AAM_GAN_64_0.5_1_repeat_5/
+cifar_AAM_GAN_64_0.7_1_repeat_4/
+data/
+data_org/
+resnet101/
+resnet34/
+confusion.png
+
