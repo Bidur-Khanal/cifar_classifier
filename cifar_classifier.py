@@ -4,6 +4,7 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 from torch.optim import lr_scheduler
+from torch.optim.lr_scheduler import _LRScheduler
 import numpy as np
 import matplotlib.pyplot as plt
 from sklearn.metrics import accuracy_score, confusion_matrix,classification_report
@@ -31,42 +32,49 @@ def get_loader(data_dir, eval_type='gan_train', mode = 'train'):
 
     # Data augmentation and normalization for training
     # Just normalization for validation
+    #mean and std of cifar100 dataset
+    CIFAR100_TRAIN_MEAN = (0.5070751592371323, 0.48654887331495095, 0.4409178433670343)
+    CIFAR100_TRAIN_STD = (0.2673342858792401, 0.2564384629170883, 0.27615047132568404)
     
     if eval_type == 'gan_train':
     
         
         data_transforms = {
-            'train': transforms.Compose([       
-                transforms.RandomHorizontalFlip(),
+            'train': transforms.Compose([ 
+                transforms.RandomCrop(32, padding=4),
+		transforms.RandomHorizontalFlip(),
+		transforms.RandomRotation(15),      
                 transforms.ToTensor(),
-                transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
+                transforms.Normalize(CIFAR100_TRAIN_MEAN, CIFAR100_TRAIN_STD)
             ]),
             'val': transforms.Compose([
                 transforms.ToTensor(),
-                transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
+                transforms.Normalize(CIFAR100_TRAIN_MEAN, CIFAR100_TRAIN_STD)
             ]),
             
             'infer': transforms.Compose([
                 transforms.ToTensor(),
-                transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])}
+                transforms.Normalize(CIFAR100_TRAIN_MEAN, CIFAR100_TRAIN_STD)])}
         
         
     if eval_type == 'gan_test':
     
         data_transforms = {
             'train': transforms.Compose([       
-                transforms.RandomHorizontalFlip(),
+                transforms.RandomCrop(32, padding=4),
+		transforms.RandomHorizontalFlip(),
+		transforms.RandomRotation(15),      
                 transforms.ToTensor(),
-                transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
+                transforms.Normalize(CIFAR100_TRAIN_MEAN, CIFAR100_TRAIN_STD)
             ]),
             'val': transforms.Compose([
                 transforms.ToTensor(),
-                transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
+                transforms.Normalize(CIFAR100_TRAIN_MEAN, CIFAR100_TRAIN_STD)
             ]),
             
             'infer': transforms.Compose([
                 transforms.ToTensor(),
-                transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])}
+                transforms.Normalize(CIFAR100_TRAIN_MEAN, CIFAR100_TRAIN_STD)])}
                 
                 
     if mode == 'train':
@@ -91,7 +99,23 @@ def get_loader(data_dir, eval_type='gan_train', mode = 'train'):
     return dataloaders, class_names, dataset_sizes
         
         
-    
+class FindLR(_LRScheduler):
+    """exponentially increasing learning rate
+    Args:
+        optimizer: optimzier(e.g. SGD)
+        num_iter: totoal_iters
+        max_lr: maximum  learning rate
+    """
+    def __init__(self, optimizer, max_lr=10, num_iter=100, last_epoch=-1):
+
+        self.total_iters = num_iter
+        self.max_lr = max_lr
+        super().__init__(optimizer, last_epoch)
+
+    def get_lr(self):
+
+        return [base_lr * (self.max_lr / base_lr) ** (self.last_epoch / (self.total_iters + 1e-32)) for base_lr in self.base_lrs]
+   
     
     
     
@@ -172,7 +196,7 @@ def plot_confusion_matrix(y_true, y_pred, classes,
 
 
 def model():
-    model_ft = models.resnet101(pretrained=True)
+    model_ft = models.resnet34(pretrained=True)
     num_ftrs = model_ft.fc.in_features    
     model_ft.fc = nn.Linear(num_ftrs, 100)
     
@@ -222,6 +246,7 @@ def train_model(output_dir, model, dataloaders, dataset_sizes, criterion, optimi
                 # statistics
                 running_loss += loss.item() * inputs.size(0)
                 running_corrects += torch.sum(preds == labels.data)
+
                 
             
                     
@@ -344,13 +369,13 @@ def train(data_dir,output_dir, eval_type):
     criterion = nn.CrossEntropyLoss()
     
     # Observe that all parameters are being optimized
-    optimizer_ft = optim.SGD(model_ft.parameters(), lr=0.001, momentum=0.9)
+    optimizer_ft = optim.SGD(model_ft.parameters(), lr=0.001, momentum=0.9, weight_decay=1e-4, nesterov=True)
     
-    # Decay LR by a factor of 0.1 every 7 epochs
-    exp_lr_scheduler = lr_scheduler.StepLR(optimizer_ft, step_size=7, gamma=0.1)
+    # Decay LR by a factor of 0.1 every 15 epochs
+    exp_lr_scheduler = lr_scheduler.StepLR(optimizer_ft, step_size=15, gamma=0.1)
     
     dataloaders, class_names, dataset_sizes = get_loader(data_dir, eval_type, 'train')
-    train_model(output_dir,model_ft, dataloaders, dataset_sizes, criterion, optimizer_ft, exp_lr_scheduler,num_epochs=25)
+    train_model(output_dir,model_ft, dataloaders, dataset_sizes, criterion, optimizer_ft, exp_lr_scheduler,num_epochs=100)
    
    
 def cls_err(data_dir, output_dir,eval_type):

@@ -13,6 +13,9 @@ data/
 data_org/
 resnet101/
 resnet34/
+resnet34_baseline_test/
+resnet34_cifar_AAM_GAN_128_0.5_1_repeat_4/
+resnet34_cifar_AAM_GAN_64_0.5_1_repeat_4/
 confusion.png
 
 # Byte-compiled / optimized / DLL files
